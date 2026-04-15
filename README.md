@@ -92,3 +92,4 @@ http://localhost:8080
 - Project data, SQLite state, and chat summaries are stored under the local user profile by default.
 - This package does not require an external Tomcat server.
 # copilotTest
+# copilotTest
