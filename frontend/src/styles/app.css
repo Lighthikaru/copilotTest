@@ -98,7 +98,7 @@ select {
 }
 
 .content-grid {
-  grid-template-columns: 340px minmax(0, 1fr);
+  grid-template-columns: 320px 320px minmax(0, 1fr);
   align-items: start;
 }
 
@@ -189,12 +189,18 @@ select {
 
 .form-grid input,
 .composer textarea,
-.inline-controls select {
+.inline-controls select,
+.command-box {
   width: 100%;
   border-radius: 16px;
   border: 1px solid rgba(74, 58, 35, 0.16);
   background: rgba(255, 253, 249, 0.96);
   padding: 12px 14px;
+}
+
+.command-box {
+  min-height: 88px;
+  resize: vertical;
 }
 
 .span-2 {
@@ -247,6 +253,39 @@ select {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.conversation-card {
+  border: 1px solid rgba(74, 58, 35, 0.12);
+  border-radius: 20px;
+  background: var(--panel-strong);
+  padding: 12px;
+}
+
+.conversation-card.selected {
+  background: rgba(194, 95, 45, 0.12);
+  border-color: rgba(194, 95, 45, 0.3);
+}
+
+.conversation-select {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+
+.conversation-select p {
+  margin: 6px 0 0;
+  color: var(--muted);
+}
+
+.conversation-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .project-row {

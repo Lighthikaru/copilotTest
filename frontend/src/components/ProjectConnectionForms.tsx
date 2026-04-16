@@ -20,8 +20,8 @@ export function ProjectConnectionForms({ onLocalImport }: Props) {
     <section className="panel">
       <div className="panel-header">
         <div>
-          <p className="eyebrow">Connect</p>
-          <h2>Bind local project folder</h2>
+          <p className="eyebrow">綁定專案</p>
+          <h2>綁定本地專案資料夾</h2>
         </div>
       </div>
 
@@ -33,7 +33,7 @@ export function ProjectConnectionForms({ onLocalImport }: Props) {
         }}
       >
         <label>
-          Display name
+          顯示名稱
           <input
             value={local.displayName}
             onChange={(event) => setLocal({ ...local, displayName: event.target.value })}
@@ -41,7 +41,7 @@ export function ProjectConnectionForms({ onLocalImport }: Props) {
           />
         </label>
         <label className="span-2">
-          Existing local path
+          本地資料夾路徑
           <input
             value={local.localPath}
             onChange={(event) => setLocal({ ...local, localPath: event.target.value })}
@@ -49,10 +49,10 @@ export function ProjectConnectionForms({ onLocalImport }: Props) {
           />
         </label>
         <p className="status-line span-2">
-          MVP only reads an existing local project folder. GitLab clone flow is intentionally disabled for this version.
+          這個版本只支援讀取既有本地專案資料夾，不提供 GitLab clone 流程。
         </p>
         <button className="button primary span-2" disabled={!canSubmitLocal}>
-          Bind folder and index
+          綁定資料夾並建立索引
         </button>
       </form>
     </section>

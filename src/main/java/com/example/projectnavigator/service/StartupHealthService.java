@@ -1,6 +1,5 @@
 package com.example.projectnavigator.service;
 
-import jakarta.annotation.PostConstruct;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -11,36 +10,77 @@ import org.springframework.stereotype.Service;
 @Service
 public class StartupHealthService {
 
-    private final Map<String, String> componentStatus = new LinkedHashMap<>();
+    private final SettingsService settingsService;
 
-    @PostConstruct
-    void initialize() {
-        componentStatus.put("copilot", detectVersion("copilot", "--version"));
+    public StartupHealthService(SettingsService settingsService) {
+        this.settingsService = settingsService;
     }
 
     public boolean isCopilotCliReady() {
-        String status = componentStatus.get("copilot");
-        return status != null && !status.startsWith("missing:");
+        return inspectCopilot().ready();
+    }
+
+    public CommandStatus inspectJava() {
+        return detectVersion(settingsService.resolveJavaPath(), "-version", settingsService.javaSourceLabel());
+    }
+
+    public CommandStatus inspectCopilot() {
+        return detectVersion(settingsService.resolveCopilotCliPath(), "--version", settingsService.copilotSourceLabel());
     }
 
     public Map<String, String> snapshot() {
-        return Map.copyOf(componentStatus);
+        CommandStatus java = inspectJava();
+        CommandStatus copilot = inspectCopilot();
+        Map<String, String> snapshot = new LinkedHashMap<>();
+        snapshot.put("java", java.displayValue());
+        snapshot.put("javaSource", java.source());
+        snapshot.put("copilot", copilot.displayValue());
+        snapshot.put("copilotSource", copilot.source());
+        return Map.copyOf(snapshot);
     }
 
-    private String detectVersion(String command, String arg) {
+    private CommandStatus detectVersion(String command, String arg, String sourceLabel) {
         try {
-            Process process = new ProcessBuilder(command, arg).start();
+            ProcessBuilder processBuilder = buildProcess(command, arg);
+            processBuilder.redirectErrorStream(true);
+            Process process = processBuilder.start();
             try (BufferedReader reader = new BufferedReader(
                     new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
                 String line = reader.readLine();
                 int exit = process.waitFor();
                 if (exit == 0 && line != null && !line.isBlank()) {
-                    return line.trim();
+                    return new CommandStatus(true, line.trim(), sourceLabel, null);
                 }
-                return "missing: exit code " + exit;
+                return new CommandStatus(false, null, sourceLabel, "exit code " + exit);
             }
         } catch (Exception ex) {
-            return "missing: " + ex.getMessage();
+            return new CommandStatus(false, null, sourceLabel, ex.getMessage());
+        }
+    }
+
+    private ProcessBuilder buildProcess(String command, String arg) {
+        if (isWindows() && (command.endsWith(".cmd") || command.endsWith(".bat"))) {
+            return new ProcessBuilder("cmd.exe", "/c", command, arg);
+        }
+        return isWindows()
+                ? new ProcessBuilder("cmd.exe", "/c", command, arg)
+                : new ProcessBuilder(command, arg);
+    }
+
+    private static boolean isWindows() {
+        return System.getProperty("os.name", "").toLowerCase().contains("win");
+    }
+
+    public record CommandStatus(
+            boolean ready,
+            String value,
+            String source,
+            String error) {
+        public String displayValue() {
+            if (ready && value != null && !value.isBlank()) {
+                return value;
+            }
+            return "missing: " + (error == null || error.isBlank() ? "unknown" : error);
         }
     }
 }

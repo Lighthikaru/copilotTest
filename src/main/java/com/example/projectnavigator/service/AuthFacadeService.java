@@ -18,18 +18,22 @@ public class AuthFacadeService {
     }
 
     public AuthState current() {
-        boolean cliReady = startupHealthService.isCopilotCliReady();
+        StartupHealthService.CommandStatus javaStatus = startupHealthService.inspectJava();
+        StartupHealthService.CommandStatus copilotStatus = startupHealthService.inspectCopilot();
+        boolean cliReady = copilotStatus.ready();
         List<String> models = cliReady ? copilotGateway.listModels() : List.of();
         boolean loggedIn = cliReady && !models.isEmpty();
         boolean entitled = loggedIn;
 
         String status;
-        if (!cliReady) {
-            status = "Copilot CLI not found. Install the official `copilot` CLI first.";
+        if (!javaStatus.ready()) {
+            status = "找不到可用的 Java 21，請先在設定頁指定 java.exe。";
+        } else if (!cliReady) {
+            status = "找不到 Copilot CLI。請先執行 npm install -g @github/copilot，或在設定頁指定 copilot.cmd。";
         } else if (!loggedIn) {
-            status = "Run `copilot login` in a terminal on this machine, complete the browser authorization, then click Refresh.";
+            status = "請先在這台機器執行 copilot login，完成瀏覽器授權後再按重新整理。";
         } else {
-            status = "Copilot CLI is ready. Bind a local project folder and start asking questions.";
+            status = "Copilot 已就緒，可以綁定本地專案並開始問答。";
         }
 
         return new AuthState(
@@ -38,6 +42,11 @@ public class AuthFacadeService {
                 entitled,
                 models,
                 "copilot login",
-                status);
+                status,
+                javaStatus.ready(),
+                javaStatus.displayValue(),
+                javaStatus.source(),
+                copilotStatus.displayValue(),
+                copilotStatus.source());
     }
 }

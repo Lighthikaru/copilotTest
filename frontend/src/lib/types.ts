@@ -11,73 +11,6 @@ export type ProjectConnection = {
   updatedAt: string;
 };
 
-export type ModuleCard = {
-  name: string;
-  kind: string;
-  description: string;
-  primaryPaths: string[];
-  technologies: string[];
-  confidence: number;
-};
-
-export type EntryPointInfo = {
-  name: string;
-  path: string;
-  type: string;
-  description: string;
-};
-
-export type RouteInfo = {
-  method: string;
-  path: string;
-  controller: string;
-  sourcePath: string;
-  description: string;
-};
-
-export type ScheduledJobInfo = {
-  name: string;
-  cron: string;
-  sourcePath: string;
-  description: string;
-};
-
-export type ConfigSignal = {
-  type: string;
-  path: string;
-  summary: string;
-};
-
-export type SymbolInfo = {
-  name: string;
-  kind: string;
-  sourcePath: string;
-  container: string;
-};
-
-export type FileSummary = {
-  path: string;
-  language: string;
-  summary: string;
-  tags: string[];
-};
-
-export type ProjectIndex = {
-  projectId: string;
-  stack: string;
-  moduleCards: ModuleCard[];
-  entryPoints: EntryPointInfo[];
-  routes: RouteInfo[];
-  jobs: ScheduledJobInfo[];
-  configSignals: ConfigSignal[];
-  symbolTable: SymbolInfo[];
-  fileSummaries: FileSummary[];
-  lastIndexedAt: string;
-  indexVersion: number;
-  excludedPaths: string[];
-  analysisWarnings: string[];
-};
-
 export type JobStatus = {
   jobId: string;
   type: string;
@@ -88,12 +21,6 @@ export type JobStatus = {
   message: string;
 };
 
-export type ProjectDetails = {
-  connection: ProjectConnection;
-  index?: ProjectIndex | null;
-  recentJobs: JobStatus[];
-};
-
 export type AuthState = {
   copilotCliReady: boolean;
   copilotLoggedIn: boolean;
@@ -101,9 +28,20 @@ export type AuthState = {
   availableModels: string[];
   loginCommand: string;
   statusMessage: string;
+  javaReady: boolean;
+  javaStatus: string;
+  javaSource: string;
+  copilotStatus: string;
+  copilotSource: string;
 };
 
 export type HealthState = Record<string, string>;
+
+export type AppSettings = {
+  javaPath?: string | null;
+  copilotCliPath?: string | null;
+  dataRoot?: string | null;
+};
 
 export type LocalProjectRequest = {
   displayName: string;
@@ -132,4 +70,44 @@ export type ChatResponse = {
   followUps: string[];
   warnings: string[];
   usage: Record<string, unknown>;
+};
+
+export type ConversationMessage = {
+  id: string;
+  role: "user" | "assistant";
+  text: string;
+  timestamp: string;
+  sources: SourceRef[];
+  model?: string | null;
+  sessionId?: string | null;
+  usage?: Record<string, unknown>;
+};
+
+export type ConversationItem = {
+  id: string;
+  projectId: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  lastModel?: string | null;
+  lastMode?: string | null;
+  sessionId: string;
+  archived: boolean;
+  summarized: boolean;
+  messageCount: number;
+};
+
+export type ConversationDetail = {
+  id: string;
+  projectId: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  lastModel?: string | null;
+  lastMode?: string | null;
+  sessionId: string;
+  archived: boolean;
+  summarized: boolean;
+  summary?: string | null;
+  messages: ConversationMessage[];
 };

@@ -2,14 +2,12 @@ package com.example.projectnavigator.service;
 
 import com.example.projectnavigator.dto.ChatRequest;
 import com.example.projectnavigator.dto.ChatResponse;
+import com.example.projectnavigator.dto.ConversationDetail;
 import com.example.projectnavigator.dto.ProjectConnection;
 import com.example.projectnavigator.dto.ProjectIndex;
-import com.example.projectnavigator.repository.ConversationRepository;
 import com.example.projectnavigator.repository.ProjectIndexRepository;
 import com.example.projectnavigator.repository.ProjectRepository;
-import com.example.projectnavigator.util.JsonCodec;
 import java.io.IOException;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -20,24 +18,21 @@ public class ChatService {
 
     private final ProjectRepository projectRepository;
     private final ProjectIndexRepository projectIndexRepository;
-    private final ConversationRepository conversationRepository;
+    private final ConversationService conversationService;
     private final ChatContextAssembler contextAssembler;
     private final CopilotGateway copilotGateway;
-    private final JsonCodec jsonCodec;
 
     public ChatService(
             ProjectRepository projectRepository,
             ProjectIndexRepository projectIndexRepository,
-            ConversationRepository conversationRepository,
+            ConversationService conversationService,
             ChatContextAssembler contextAssembler,
-            CopilotGateway copilotGateway,
-            JsonCodec jsonCodec) {
+            CopilotGateway copilotGateway) {
         this.projectRepository = projectRepository;
         this.projectIndexRepository = projectIndexRepository;
-        this.conversationRepository = conversationRepository;
+        this.conversationService = conversationService;
         this.contextAssembler = contextAssembler;
         this.copilotGateway = copilotGateway;
-        this.jsonCodec = jsonCodec;
     }
 
     public void stream(ChatRequest request, SseEmitter emitter) {
@@ -46,10 +41,17 @@ public class ChatService {
                     .orElseThrow(() -> new IllegalArgumentException("Project not found: " + request.projectId()));
             ProjectIndex index = projectIndexRepository.findByProjectId(request.projectId())
                     .orElseThrow(() -> new IllegalArgumentException("Project is not indexed yet."));
-            String conversationId = request.conversationId() == null || request.conversationId().isBlank()
-                    ? UUID.randomUUID().toString()
-                    : request.conversationId();
-            String summary = conversationRepository.findSummary(conversationId).orElse(null);
+            ConversationDetail conversation = request.conversationId() == null || request.conversationId().isBlank()
+                    ? conversationService.create(request.projectId(), null)
+                    : conversationService.ensureConversation(request.projectId(), request.conversationId());
+            String conversationId = conversation.id();
+            conversationService.appendUserMessage(
+                    request.projectId(),
+                    conversationId,
+                    request.question(),
+                    request.selectedModel() == null || request.selectedModel().isBlank() ? "gpt-5.4" : request.selectedModel(),
+                    request.mode());
+            String summary = conversationService.contextSummary(request.projectId(), conversationId);
 
             ChatContextAssembler.ContextPack contextPack =
                     contextAssembler.build(connection, index, request.question(), request.mode(), summary);
@@ -80,12 +82,13 @@ public class ChatService {
             ChatContextAssembler.ContextPack contextPack,
             ChatResponse response,
             SseEmitter emitter) {
-        Map<String, Object> summary = new LinkedHashMap<>();
-        summary.put("lastQuestion", request.question());
-        summary.put("lastAnswer", response.answer());
-        summary.put("mode", request.mode());
-        summary.put("sources", response.sources().stream().map(source -> source.path()).toList());
-        conversationRepository.saveSummary(conversationId, request.projectId(), jsonCodec.write(summary));
+        conversationService.appendAssistantMessage(
+                request.projectId(),
+                conversationId,
+                response.answer(),
+                response.sources(),
+                request.selectedModel() == null || request.selectedModel().isBlank() ? "gpt-5.4" : request.selectedModel(),
+                response.usage());
 
         try {
             emitter.send(SseEmitter.event().name("complete").data(response));

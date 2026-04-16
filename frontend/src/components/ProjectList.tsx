@@ -21,8 +21,8 @@ export function ProjectList({
     <section className="panel project-list">
       <div className="panel-header">
         <div>
-          <p className="eyebrow">Library</p>
-          <h2>Projects</h2>
+          <p className="eyebrow">專案庫</p>
+          <h2>專案清單</h2>
         </div>
         <div className="header-actions">
           {activeJob ? (
@@ -39,7 +39,7 @@ export function ProjectList({
               onClick={() => void onReindex(selectedProject.id)}
               disabled={activeJob?.state === "RUNNING"}
             >
-              Reindex
+              重新索引
             </button>
           ) : null}
         </div>
@@ -59,7 +59,7 @@ export function ProjectList({
             <span>{new Date(project.updatedAt).toLocaleString()}</span>
           </button>
         ))}
-        {!projects.length ? <p className="empty">No projects imported yet.</p> : null}
+        {!projects.length ? <p className="empty">目前還沒有匯入任何專案。</p> : null}
       </div>
     </section>
   );

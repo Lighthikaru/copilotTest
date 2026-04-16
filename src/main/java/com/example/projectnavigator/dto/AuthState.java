@@ -8,5 +8,10 @@ public record AuthState(
         boolean copilotEntitled,
         List<String> availableModels,
         String loginCommand,
-        String statusMessage) {
+        String statusMessage,
+        boolean javaReady,
+        String javaStatus,
+        String javaSource,
+        String copilotStatus,
+        String copilotSource) {
 }

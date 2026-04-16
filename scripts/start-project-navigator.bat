@@ -1,21 +1,21 @@
 @echo off
 setlocal
 
-set SCRIPT_DIR=%~dp0
-set ROOT_DIR=%SCRIPT_DIR%..
-set JAVA_BIN=java
-set JAR_PATH=
+set "SCRIPT_DIR=%~dp0"
+for %%i in ("%SCRIPT_DIR%..") do set "ROOT_DIR=%%~fi"
+set "JAVA_BIN=java"
+set "JAR_PATH="
 
 if defined JAVA_HOME (
-  set JAVA_BIN=%JAVA_HOME%\bin\java.exe
+  set "JAVA_BIN=%JAVA_HOME%\bin\java.exe"
 )
 
 if exist "%ROOT_DIR%\project-navigator-0.1.0-SNAPSHOT.jar" (
-  set JAR_PATH=%ROOT_DIR%\project-navigator-0.1.0-SNAPSHOT.jar
+  set "JAR_PATH=%ROOT_DIR%\project-navigator-0.1.0-SNAPSHOT.jar"
 )
 
 if not defined JAR_PATH if exist "%ROOT_DIR%\target\project-navigator-0.1.0-SNAPSHOT.jar" (
-  set JAR_PATH=%ROOT_DIR%\target\project-navigator-0.1.0-SNAPSHOT.jar
+  set "JAR_PATH=%ROOT_DIR%\target\project-navigator-0.1.0-SNAPSHOT.jar"
 )
 
 if not defined JAR_PATH (

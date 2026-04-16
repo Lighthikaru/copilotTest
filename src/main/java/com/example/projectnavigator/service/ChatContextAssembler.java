@@ -51,7 +51,7 @@ public class ChatContextAssembler {
                         + "Question: " + question + "\n\n");
 
         if (conversationSummary != null && !conversationSummary.isBlank()) {
-            appendWithinBudget(prompt, budget, "Recent conversation summary:\n" + conversationSummary + "\n\n");
+            appendWithinBudget(prompt, budget, "Conversation context:\n" + conversationSummary + "\n\n");
         }
 
         appendWithinBudget(prompt, budget, "Top modules:\n");

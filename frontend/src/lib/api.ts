@@ -1,12 +1,14 @@
 import type {
+  AppSettings,
   AuthState,
   ChatRequest,
   ChatResponse,
+  ConversationDetail,
+  ConversationItem,
   HealthState,
   JobStatus,
   LocalProjectRequest,
   ProjectConnection,
-  ProjectDetails,
 } from "./types";
 
 async function request<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
@@ -33,8 +35,13 @@ async function request<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
 export const api = {
   getHealth: () => request<HealthState>("/api/health"),
   getAuthState: () => request<AuthState>("/api/auth/state"),
+  getSettings: () => request<AppSettings>("/api/settings"),
+  saveSettings: (payload: AppSettings) =>
+    request<AppSettings>("/api/settings", {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }),
   getProjects: () => request<ProjectConnection[]>("/api/projects"),
-  getProject: (projectId: string) => request<ProjectDetails>(`/api/projects/${projectId}`),
   importLocal: (payload: LocalProjectRequest) =>
     request<JobStatus>("/api/projects/local", {
       method: "POST",
@@ -45,6 +52,31 @@ export const api = {
       method: "POST",
     }),
   getJob: (jobId: string) => request<JobStatus>(`/api/jobs/${jobId}`),
+  getConversations: (projectId: string) => request<ConversationItem[]>(`/api/projects/${projectId}/conversations`),
+  createConversation: (projectId: string, title?: string) =>
+    request<ConversationDetail>(`/api/projects/${projectId}/conversations`, {
+      method: "POST",
+      body: JSON.stringify(title ? { title } : {}),
+    }),
+  getConversation: (projectId: string, conversationId: string) =>
+    request<ConversationDetail>(`/api/projects/${projectId}/conversations/${conversationId}`),
+  updateConversation: (projectId: string, conversationId: string, payload: { title?: string; archived?: boolean }) =>
+    request<ConversationDetail>(`/api/projects/${projectId}/conversations/${conversationId}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  compressConversation: (projectId: string, conversationId: string) =>
+    request<ConversationDetail>(`/api/projects/${projectId}/conversations/${conversationId}/compress`, {
+      method: "POST",
+    }),
+  restartConversationSession: (projectId: string, conversationId: string) =>
+    request<ConversationDetail>(`/api/projects/${projectId}/conversations/${conversationId}/restart-session`, {
+      method: "POST",
+    }),
+  clearConversationMessages: (projectId: string, conversationId: string) =>
+    request<ConversationDetail>(`/api/projects/${projectId}/conversations/${conversationId}/messages`, {
+      method: "DELETE",
+    }),
   subscribeJob(jobId: string, onMessage: (job: JobStatus) => void) {
     const eventSource = new EventSource(`/api/jobs/${jobId}/stream`);
     eventSource.addEventListener("job", (event) => {
@@ -119,7 +151,7 @@ function parseSseEvent(
     onWarnings?: (warnings: string[]) => void;
     onComplete?: (response: ChatResponse) => void;
   },
-) : "error" | "handled" | "ignored" {
+): "error" | "handled" | "ignored" {
   const lines = rawEvent.split(/\r?\n/);
   const eventLine = lines.find((line) => line.startsWith("event:"));
   const dataLines = lines
@@ -141,7 +173,7 @@ function parseSseEvent(
   }
 
   if (eventName === "error") {
-    callbacks.onError?.(data || "Chat request failed.");
+    callbacks.onError?.(data || "聊天請求失敗。");
     return "error";
   }
 

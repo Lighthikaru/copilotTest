@@ -1,5 +1,5 @@
 import { startTransition, useEffect, useMemo, useRef, useState } from "react";
-import type { AuthState, ChatResponse, ProjectConnection, SourceRef } from "../lib/types";
+import type { AuthState, ChatResponse, ConversationDetail, ProjectConnection, SourceRef } from "../lib/types";
 
 type Message = {
   role: "user" | "assistant";
@@ -13,6 +13,10 @@ type Props = {
   selectedModel: string;
   setSelectedModel: (model: string) => void;
   selectedProject: ProjectConnection | null;
+  selectedConversation: ConversationDetail | null;
+  onCompressConversation: () => Promise<void>;
+  onClearConversation: () => Promise<void>;
+  onRestartSession: () => Promise<void>;
   onSend: (
     question: string,
     mode: "structure" | "impact",
@@ -26,7 +30,17 @@ type Props = {
 
 const STREAM_FLUSH_MS = 75;
 
-export function ChatPanel({ authState, selectedModel, setSelectedModel, selectedProject, onSend }: Props) {
+export function ChatPanel({
+  authState,
+  selectedModel,
+  setSelectedModel,
+  selectedProject,
+  selectedConversation,
+  onCompressConversation,
+  onClearConversation,
+  onRestartSession,
+  onSend,
+}: Props) {
   const [question, setQuestion] = useState("");
   const [mode, setMode] = useState<"structure" | "impact">("structure");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -38,10 +52,10 @@ export function ChatPanel({ authState, selectedModel, setSelectedModel, selected
 
   const disabledReason = useMemo(() => {
     if (!selectedProject) {
-      return "Select a project first.";
+      return "請先選擇專案。";
     }
     if (!authState?.copilotEntitled) {
-      return authState?.statusMessage ?? "Copilot is not ready yet.";
+      return authState?.statusMessage ?? "Copilot 尚未就緒。";
     }
     return null;
   }, [authState, selectedProject]);
@@ -57,6 +71,25 @@ export function ChatPanel({ authState, selectedModel, setSelectedModel, selected
   useEffect(() => {
     renderedPendingRef.current = pendingAnswer;
   }, [pendingAnswer]);
+
+  useEffect(() => {
+    setMessages(
+      (selectedConversation?.messages ?? []).map((message) => ({
+        role: message.role,
+        text: message.text,
+        sources: message.sources,
+      })),
+    );
+    setPendingAnswer("");
+    chunkBufferRef.current = "";
+    renderedPendingRef.current = "";
+    if (selectedConversation?.lastMode === "impact" || selectedConversation?.lastMode === "structure") {
+      setMode(selectedConversation.lastMode);
+    }
+    if (selectedConversation?.lastModel) {
+      setSelectedModel(selectedConversation.lastModel);
+    }
+  }, [selectedConversation, setSelectedModel]);
 
   function flushBufferedChunks() {
     if (flushTimerRef.current !== null) {
@@ -135,7 +168,7 @@ export function ChatPanel({ authState, selectedModel, setSelectedModel, selected
         },
       });
     } catch (reason) {
-      handleStreamError((reason as Error).message || "Chat request failed.");
+      handleStreamError((reason as Error).message || "聊天請求失敗。");
     } finally {
       flushBufferedChunks();
       if (flushTimerRef.current !== null) {
@@ -153,14 +186,20 @@ export function ChatPanel({ authState, selectedModel, setSelectedModel, selected
     <section className="panel chat-panel">
       <div className="panel-header">
         <div>
-          <p className="eyebrow">Chat</p>
-          <h2>Ask about the project</h2>
-          {selectedProject ? <p className="status-line">Current project: {selectedProject.displayName}</p> : null}
+          <p className="eyebrow">聊天</p>
+          <h2>專案問答</h2>
+          {selectedProject ? <p className="status-line">目前專案：{selectedProject.displayName}</p> : null}
+          {selectedConversation ? (
+            <p className="status-line">
+              目前對話：{selectedConversation.title}
+              {selectedConversation.summarized ? " · 已整理上文" : ""}
+            </p>
+          ) : null}
         </div>
         <div className="inline-controls">
           <select value={mode} onChange={(event) => setMode(event.target.value as "structure" | "impact")}>
-            <option value="structure">Structure</option>
-            <option value="impact">Impact</option>
+            <option value="structure">結構理解</option>
+            <option value="impact">影響分析</option>
           </select>
           <select value={selectedModel} onChange={(event) => setSelectedModel(event.target.value)}>
             {(authState?.availableModels ?? []).map((model) => (
@@ -169,6 +208,15 @@ export function ChatPanel({ authState, selectedModel, setSelectedModel, selected
               </option>
             ))}
           </select>
+          <button className="button ghost" onClick={() => void onCompressConversation()} disabled={!selectedConversation || busy}>
+            整理上文
+          </button>
+          <button className="button ghost" onClick={() => void onRestartSession()} disabled={!selectedConversation || busy}>
+            重啟 Session
+          </button>
+          <button className="button ghost" onClick={() => void onClearConversation()} disabled={!selectedConversation || busy}>
+            清空對話
+          </button>
         </div>
       </div>
 
@@ -198,13 +246,11 @@ export function ChatPanel({ authState, selectedModel, setSelectedModel, selected
         ) : null}
         {showThinkingState ? (
           <article className="bubble assistant pending">
-            <p>Thinking...</p>
+            <p>思考中...</p>
           </article>
         ) : null}
         {!messages.length && !pendingAnswer && !showThinkingState ? (
-          <div className="empty">
-            Ask "這個專案的登入流程在哪裡？" or "新增欄位 customerLevel 會影響哪些地方？"
-          </div>
+          <div className="empty">可以試著問：「這個專案的登入流程在哪裡？」或「新增欄位 customerLevel 會影響哪些地方？」</div>
         ) : null}
       </div>
 
@@ -212,11 +258,11 @@ export function ChatPanel({ authState, selectedModel, setSelectedModel, selected
         <textarea
           value={question}
           onChange={(event) => setQuestion(event.target.value)}
-          placeholder={disabledReason ?? "Ask a question about structure or impact."}
+          placeholder={disabledReason ?? "輸入你想問的內容，例如結構理解或影響分析。"}
           disabled={Boolean(disabledReason) || busy}
         />
         <button className="button primary" onClick={() => void handleSubmit()} disabled={Boolean(disabledReason) || busy}>
-          {busy ? "Thinking..." : "Send"}
+          {busy ? "思考中..." : "送出"}
         </button>
       </div>
       {disabledReason ? <p className="status-line">{disabledReason}</p> : null}

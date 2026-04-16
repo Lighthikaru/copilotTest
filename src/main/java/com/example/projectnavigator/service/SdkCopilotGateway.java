@@ -27,10 +27,12 @@ import org.springframework.stereotype.Service;
 public class SdkCopilotGateway implements CopilotGateway {
 
     private final AppProperties properties;
+    private final SettingsService settingsService;
     private final StubCopilotGateway fallbackGateway;
 
-    public SdkCopilotGateway(AppProperties properties, StubCopilotGateway fallbackGateway) {
+    public SdkCopilotGateway(AppProperties properties, SettingsService settingsService, StubCopilotGateway fallbackGateway) {
         this.properties = properties;
+        this.settingsService = settingsService;
         this.fallbackGateway = fallbackGateway;
     }
 
@@ -122,11 +124,21 @@ public class SdkCopilotGateway implements CopilotGateway {
     }
 
     private CopilotClientOptions buildOptions() {
-        return new CopilotClientOptions()
+        CopilotClientOptions options = new CopilotClientOptions()
                 .setAutoStart(true)
                 .setAutoRestart(false)
                 .setUseStdio(true)
                 .setUseLoggedInUser(true);
+        String configuredCli = settingsService.resolveCopilotCliPath();
+        if (configuredCli != null && !configuredCli.isBlank() && !"copilot".equals(configuredCli)) {
+            if (configuredCli.endsWith(".cmd") || configuredCli.endsWith(".bat")) {
+                options.setCliPath("cmd.exe");
+                options.setCliArgs(new String[]{"/c", configuredCli});
+            } else {
+                options.setCliPath(configuredCli);
+            }
+        }
+        return options;
     }
 
     private SessionConfig buildSession(String selectedModel, String workingDirectory, boolean streaming) {
