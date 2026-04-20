@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: project-navigator
+  datasource:
+    url: jdbc:sqlite:${navigator.data-root:${user.home}/.project-navigator}/navigator.db
+    driver-class-name: org.sqlite.JDBC
+  sql:
+    init:
+      mode: always
+  jackson:
+    default-property-inclusion: non_null
+
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    session:
+      cookie:
+        same-site: lax
+
+navigator:
+  data-root: ${NAVIGATOR_DATA_ROOT:${user.home}/.project-navigator}
+  workspace-root: ${navigator.data-root}/workspaces
+  chat:
+    allow-fallback: false
+  max-file-size-bytes: 200000
+  max-context-characters: 12000
+  max-indexed-files: 400
+  excluded-patterns:
+    - .git
+    - node_modules
+    - vendor
+    - dist
+    - build
+    - target
+    - out
+    - .idea
+    - .gradle
+    - .mvn
+    - .next
+    - coverage
+    - bin
+    - obj
+  sensitive-file-patterns:
+    - .env
+    - .pem
+    - .p12
+    - .pfx
+    - .key
+    - id_rsa
+    - id_dsa
+    - credentials
+    - secret
+    - keystore

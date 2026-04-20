@@ -44,4 +44,8 @@ public class ProjectIndexRepository {
                 .stream()
                 .findFirst();
     }
+
+    public void deleteByProjectId(String projectId) {
+        jdbcTemplate.update("DELETE FROM project_index WHERE project_id = ?", projectId);
+    }
 }

@@ -6,7 +6,7 @@ type Props = {
   onSelect: (conversationId: string) => void;
   onCreate: () => Promise<void>;
   onRename: (conversationId: string) => Promise<void>;
-  onArchive: (conversationId: string) => Promise<void>;
+  onDelete: (conversationId: string) => Promise<void>;
 };
 
 export function ConversationList({
@@ -15,7 +15,7 @@ export function ConversationList({
   onSelect,
   onCreate,
   onRename,
-  onArchive,
+  onDelete,
 }: Props) {
   return (
     <section className="panel conversation-list">
@@ -23,6 +23,7 @@ export function ConversationList({
         <div>
           <p className="eyebrow">對話</p>
           <h2>聊天紀錄</h2>
+          <p className="panel-subtitle">保留結構理解與影響分析的上下文，快速切回最近工作。</p>
         </div>
         <button className="button primary" onClick={() => void onCreate()}>
           新對話
@@ -45,8 +46,8 @@ export function ConversationList({
               <button className="button ghost" onClick={() => void onRename(conversation.id)}>
                 重新命名
               </button>
-              <button className="button ghost" onClick={() => void onArchive(conversation.id)}>
-                {conversation.archived ? "取消封存" : "封存"}
+              <button className="button ghost danger" onClick={() => void onDelete(conversation.id)}>
+                刪除對話
               </button>
             </div>
           </article>

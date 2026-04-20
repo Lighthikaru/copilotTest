@@ -69,4 +69,8 @@ public class JobRepository {
                         rs.getString("message")),
                 projectId);
     }
+
+    public void deleteByProjectId(String projectId) {
+        jdbcTemplate.update("DELETE FROM job_status WHERE project_id = ?", projectId);
+    }
 }

@@ -51,6 +51,10 @@ export const api = {
     request<JobStatus>(`/api/projects/${projectId}/reindex`, {
       method: "POST",
     }),
+  deleteProject: (projectId: string) =>
+    request<void>(`/api/projects/${projectId}`, {
+      method: "DELETE",
+    }),
   getJob: (jobId: string) => request<JobStatus>(`/api/jobs/${jobId}`),
   getConversations: (projectId: string) => request<ConversationItem[]>(`/api/projects/${projectId}/conversations`),
   createConversation: (projectId: string, title?: string) =>
@@ -75,6 +79,10 @@ export const api = {
     }),
   clearConversationMessages: (projectId: string, conversationId: string) =>
     request<ConversationDetail>(`/api/projects/${projectId}/conversations/${conversationId}/messages`, {
+      method: "DELETE",
+    }),
+  deleteConversation: (projectId: string, conversationId: string) =>
+    request<void>(`/api/projects/${projectId}/conversations/${conversationId}`, {
       method: "DELETE",
     }),
   subscribeJob(jobId: string, onMessage: (job: JobStatus) => void) {

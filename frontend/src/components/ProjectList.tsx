@@ -7,6 +7,7 @@ type Props = {
   activeJob?: JobStatus | null;
   onSelect: (projectId: string) => void;
   onReindex: (projectId: string) => Promise<void>;
+  onDelete: (projectId: string) => Promise<void>;
 };
 
 export function ProjectList({
@@ -16,6 +17,7 @@ export function ProjectList({
   activeJob,
   onSelect,
   onReindex,
+  onDelete,
 }: Props) {
   return (
     <section className="panel project-list">
@@ -23,6 +25,7 @@ export function ProjectList({
         <div>
           <p className="eyebrow">專案庫</p>
           <h2>專案清單</h2>
+          <p className="panel-subtitle">選擇工作區後，右側聊天與對話會同步切換。</p>
         </div>
         <div className="header-actions">
           {activeJob ? (
@@ -42,6 +45,15 @@ export function ProjectList({
               重新索引
             </button>
           ) : null}
+          {selectedProject ? (
+            <button
+              className="button ghost danger"
+              onClick={() => void onDelete(selectedProject.id)}
+              disabled={activeJob?.state === "RUNNING"}
+            >
+              刪除專案
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -52,11 +64,11 @@ export function ProjectList({
             className={`project-row ${project.id === selectedProjectId ? "selected" : ""}`}
             onClick={() => onSelect(project.id)}
           >
-            <div>
+            <div className="project-row-copy">
               <strong>{project.displayName}</strong>
               <p>{project.localPath}</p>
             </div>
-            <span>{new Date(project.updatedAt).toLocaleString()}</span>
+            <span className="project-row-date">{new Date(project.updatedAt).toLocaleString()}</span>
           </button>
         ))}
         {!projects.length ? <p className="empty">目前還沒有匯入任何專案。</p> : null}

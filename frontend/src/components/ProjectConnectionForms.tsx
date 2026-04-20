@@ -22,6 +22,7 @@ export function ProjectConnectionForms({ onLocalImport }: Props) {
         <div>
           <p className="eyebrow">綁定專案</p>
           <h2>綁定本地專案資料夾</h2>
+          <p className="panel-subtitle">輸入資料夾後立即建立索引，後續可直接用聊天追蹤架構與影響範圍。</p>
         </div>
       </div>
 

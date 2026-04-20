@@ -8,6 +8,7 @@ import com.example.projectnavigator.service.ProjectService;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -42,5 +43,10 @@ public class ProjectController {
     @PostMapping("/{projectId}/reindex")
     public JobStatus reindex(@PathVariable String projectId) {
         return projectService.reindex(projectId);
+    }
+
+    @DeleteMapping("/{projectId}")
+    public void deleteProject(@PathVariable String projectId) {
+        projectService.deleteProject(projectId);
     }
 }

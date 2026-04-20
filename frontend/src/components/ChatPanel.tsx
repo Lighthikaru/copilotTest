@@ -49,6 +49,8 @@ export function ChatPanel({
   const chunkBufferRef = useRef("");
   const flushTimerRef = useRef<number | null>(null);
   const renderedPendingRef = useRef("");
+  const chatLogRef = useRef<HTMLDivElement | null>(null);
+  const shouldStickToBottomRef = useRef(true);
 
   const disabledReason = useMemo(() => {
     if (!selectedProject) {
@@ -71,6 +73,17 @@ export function ChatPanel({
   useEffect(() => {
     renderedPendingRef.current = pendingAnswer;
   }, [pendingAnswer]);
+
+  useEffect(() => {
+    const log = chatLogRef.current;
+    if (!log) {
+      return;
+    }
+    if (!shouldStickToBottomRef.current) {
+      return;
+    }
+    log.scrollTop = log.scrollHeight;
+  }, [messages, pendingAnswer, busy, selectedConversation?.id]);
 
   useEffect(() => {
     setMessages(
@@ -149,7 +162,7 @@ export function ChatPanel({
       return;
     }
 
-    const askedQuestion = question;
+    const askedQuestion = question.trim();
     setQuestion("");
     setBusy(true);
     setPendingAnswer("");
@@ -178,6 +191,20 @@ export function ChatPanel({
       chunkBufferRef.current = "";
       setBusy(false);
     }
+  }
+
+  function handleComposerKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) {
+      return;
+    }
+    event.preventDefault();
+    void handleSubmit();
+  }
+
+  function handleChatLogScroll(event: React.UIEvent<HTMLDivElement>) {
+    const log = event.currentTarget;
+    const distanceFromBottom = log.scrollHeight - log.scrollTop - log.clientHeight;
+    shouldStickToBottomRef.current = distanceFromBottom < 48;
   }
 
   const showThinkingState = busy && !pendingAnswer;
@@ -220,7 +247,7 @@ export function ChatPanel({
         </div>
       </div>
 
-      <div className="chat-log">
+      <div ref={chatLogRef} className="chat-log" aria-live="polite" onScroll={handleChatLogScroll}>
         {messages.map((message, index) => (
           <article
             key={`${message.role}-${index}`}
@@ -258,12 +285,17 @@ export function ChatPanel({
         <textarea
           value={question}
           onChange={(event) => setQuestion(event.target.value)}
+          onKeyDown={handleComposerKeyDown}
           placeholder={disabledReason ?? "輸入你想問的內容，例如結構理解或影響分析。"}
           disabled={Boolean(disabledReason) || busy}
+          rows={4}
         />
         <button className="button primary" onClick={() => void handleSubmit()} disabled={Boolean(disabledReason) || busy}>
           {busy ? "思考中..." : "送出"}
         </button>
+      </div>
+      <div className="composer-meta">
+        <span>{busy ? "系統正在產生回覆，畫面會即時更新。" : "Enter 送出，Shift+Enter 換行。"}</span>
       </div>
       {disabledReason ? <p className="status-line">{disabledReason}</p> : null}
     </section>

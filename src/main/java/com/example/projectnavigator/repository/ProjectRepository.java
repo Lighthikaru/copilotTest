@@ -79,4 +79,8 @@ public class ProjectRepository {
                 id);
         return results.stream().findFirst();
     }
+
+    public void deleteById(String id) {
+        jdbcTemplate.update("DELETE FROM project_connection WHERE id = ?", id);
+    }
 }

@@ -62,4 +62,9 @@ public class ConversationController {
     public ConversationDetail clearMessages(@PathVariable String projectId, @PathVariable String conversationId) {
         return conversationService.clearMessages(projectId, conversationId);
     }
+
+    @DeleteMapping("/{conversationId}")
+    public void deleteConversation(@PathVariable String projectId, @PathVariable String conversationId) {
+        conversationService.deleteConversation(projectId, conversationId);
+    }
 }

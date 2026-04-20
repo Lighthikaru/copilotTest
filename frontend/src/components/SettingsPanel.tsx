@@ -34,6 +34,7 @@ export function SettingsPanel({ settings, onSave }: Props) {
         <div>
           <p className="eyebrow">系統設定</p>
           <h2>執行環境</h2>
+          <p className="panel-subtitle">手動指定 Java、Copilot CLI 與資料目錄，讓本機環境更穩定。</p>
         </div>
       </div>
 

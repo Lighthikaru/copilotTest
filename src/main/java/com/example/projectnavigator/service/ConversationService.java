@@ -8,6 +8,8 @@ import com.example.projectnavigator.util.JsonCodec;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -15,6 +17,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.io.IOException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -251,6 +254,39 @@ public class ConversationService {
             return create(projectId, null);
         }
         return get(projectId, conversationId);
+    }
+
+    public void deleteConversation(String projectId, String conversationId) {
+        Path path = conversationPath(projectId, conversationId);
+        try {
+            Files.deleteIfExists(path);
+        } catch (Exception ex) {
+            throw new IllegalStateException("無法刪除對話檔：" + ex.getMessage(), ex);
+        }
+    }
+
+    public void deleteProjectConversations(String projectId) {
+        Path dir = projectDirectory(projectId);
+        if (Files.notExists(dir)) {
+            return;
+        }
+        try {
+            Files.walkFileTree(dir, new SimpleFileVisitor<>() {
+                @Override
+                public java.nio.file.FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    Files.deleteIfExists(file);
+                    return java.nio.file.FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public java.nio.file.FileVisitResult postVisitDirectory(Path directory, IOException exc) throws IOException {
+                    Files.deleteIfExists(directory);
+                    return java.nio.file.FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (Exception ex) {
+            throw new IllegalStateException("無法刪除專案對話資料：" + ex.getMessage(), ex);
+        }
     }
 
     private String summarize(List<ConversationMessage> messages) {

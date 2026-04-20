@@ -4,6 +4,7 @@ import com.example.projectnavigator.dto.JobStatus;
 import com.example.projectnavigator.dto.LocalProjectRequest;
 import com.example.projectnavigator.dto.ProjectConnection;
 import com.example.projectnavigator.dto.ProjectDetails;
+import com.example.projectnavigator.repository.JobRepository;
 import com.example.projectnavigator.repository.ProjectIndexRepository;
 import com.example.projectnavigator.repository.ProjectRepository;
 import java.nio.file.Path;
@@ -18,23 +19,29 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final ProjectIndexRepository projectIndexRepository;
+    private final ConversationService conversationService;
     private final GitService gitService;
     private final IndexingService indexingService;
     private final JobService jobService;
+    private final JobRepository jobRepository;
     private final Executor applicationTaskExecutor;
 
     public ProjectService(
             ProjectRepository projectRepository,
             ProjectIndexRepository projectIndexRepository,
+            ConversationService conversationService,
             GitService gitService,
             IndexingService indexingService,
             JobService jobService,
+            JobRepository jobRepository,
             Executor applicationTaskExecutor) {
         this.projectRepository = projectRepository;
         this.projectIndexRepository = projectIndexRepository;
+        this.conversationService = conversationService;
         this.gitService = gitService;
         this.indexingService = indexingService;
         this.jobService = jobService;
+        this.jobRepository = jobRepository;
         this.applicationTaskExecutor = applicationTaskExecutor;
     }
 
@@ -101,6 +108,15 @@ public class ProjectService {
         });
 
         return job;
+    }
+
+    public void deleteProject(String projectId) {
+        projectRepository.findById(projectId)
+                .orElseThrow(() -> new IllegalArgumentException("Project not found: " + projectId));
+        conversationService.deleteProjectConversations(projectId);
+        projectIndexRepository.deleteByProjectId(projectId);
+        jobRepository.deleteByProjectId(projectId);
+        projectRepository.deleteById(projectId);
     }
 
 }

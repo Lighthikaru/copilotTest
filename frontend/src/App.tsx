@@ -92,15 +92,14 @@ export default function App() {
   async function refreshConversations(projectId: string) {
     try {
       const items = await api.getConversations(projectId);
-      const visible = items.filter((item) => !item.archived);
-      setConversations(visible);
-      if (!visible.length) {
+      setConversations(items);
+      if (!items.length) {
         setSelectedConversationId(undefined);
         setSelectedConversation(null);
         return;
       }
       setSelectedConversationId((current) =>
-        current && visible.some((item) => item.id === current) ? current : visible[0].id,
+        current && items.some((item) => item.id === current) ? current : items[0].id,
       );
     } catch (reason) {
       setError((reason as Error).message);
@@ -121,22 +120,30 @@ export default function App() {
   return (
     <main className="shell">
       <section className="hero">
-        <div>
+        <div className="hero-copy">
           <p className="eyebrow">本機 Web 助手</p>
           <h1>Project Navigator</h1>
-          <p>綁定既有本地專案資料夾、建立專案地圖，並透過 Copilot CLI 問答，協助 BA / SA 快速理解程式結構。</p>
+          <p>把專案索引、對話管理與 Copilot 問答整合在同一個深色工作台，讓理解架構和追查影響範圍更順手。</p>
         </div>
-        {selectedProject ? (
-          <div className="hero-card">
-            <strong>{selectedProject.displayName}</strong>
-            <span>本地工作區</span>
+        <div className="hero-status">
+          <div className="hero-stat">
+            <span>專案數</span>
+            <strong>{projects.length}</strong>
           </div>
-        ) : null}
+          <div className="hero-stat hero-stat-accent">
+            <span>目前工作區</span>
+            <strong>{selectedProject?.displayName ?? "尚未選擇"}</strong>
+          </div>
+          <div className="hero-stat">
+            <span>對話數</span>
+            <strong>{conversations.length}</strong>
+          </div>
+        </div>
       </section>
 
       {error ? <div className="error-banner">{error}</div> : null}
 
-      <div className="top-grid">
+      <section className="overview-grid">
         <AuthPanel authState={authState} health={health} onRefresh={() => void refreshShell()} />
         <ProjectConnectionForms
           onLocalImport={async (payload) => {
@@ -144,9 +151,6 @@ export default function App() {
             await watchJob(job);
           }}
         />
-      </div>
-
-      <div className="top-grid">
         <SettingsPanel
           settings={settings}
           onSave={async (nextSettings) => {
@@ -155,7 +159,7 @@ export default function App() {
             await refreshShell();
           }}
         />
-      </div>
+      </section>
 
       <div className="content-grid">
         <ProjectList
@@ -167,6 +171,23 @@ export default function App() {
           onReindex={async (projectId) => {
             const job = await api.reindex(projectId);
             await watchJob(job);
+          }}
+          onDelete={async (projectId) => {
+            const project = projects.find((item) => item.id === projectId);
+            const confirmed = window.confirm(
+              `確定要刪除專案「${project?.displayName ?? projectId}」嗎？這只會刪除 Project Navigator 的工具資料，不會刪除原始碼資料夾。`,
+            );
+            if (!confirmed) {
+              return;
+            }
+            await api.deleteProject(projectId);
+            const nextProjects = projects.filter((item) => item.id !== projectId);
+            setProjects(nextProjects);
+            if (selectedProjectId === projectId) {
+              setSelectedProjectId(nextProjects[0]?.id);
+              setSelectedConversationId(undefined);
+              setSelectedConversation(null);
+            }
           }}
         />
         <ConversationList
@@ -193,15 +214,26 @@ export default function App() {
             await api.updateConversation(selectedProject.id, conversationId, { title });
             await refreshConversations(selectedProject.id);
           }}
-          onArchive={async (conversationId) => {
+          onDelete={async (conversationId) => {
             if (!selectedProject) {
               return;
             }
             const current = conversations.find((item) => item.id === conversationId);
-            await api.updateConversation(selectedProject.id, conversationId, {
-              archived: !(current?.archived ?? false),
-            });
+            const confirmed = window.confirm(
+              `確定要永久刪除對話「${current?.title ?? conversationId}」嗎？此動作會刪除聊天紀錄、上下文與 session 資料，且無法復原。`,
+            );
+            if (!confirmed) {
+              return;
+            }
+            await api.deleteConversation(selectedProject.id, conversationId);
             await refreshConversations(selectedProject.id);
+            if (selectedConversationId === conversationId) {
+              const remaining = conversations.filter((item) => item.id !== conversationId);
+              setSelectedConversationId(remaining[0]?.id);
+              if (!remaining.length) {
+                setSelectedConversation(null);
+              }
+            }
           }}
         />
         <ChatPanel
@@ -258,6 +290,7 @@ export default function App() {
                 onMeta: (meta) => {
                   const metaId = String(meta.conversationId ?? conversationId);
                   if (metaId) {
+                    conversationId = metaId;
                     setSelectedConversationId(metaId);
                   }
                 },
@@ -265,10 +298,14 @@ export default function App() {
                 onError: handlers.onError,
                 onComplete: async (response) => {
                   handlers.onComplete(response);
-                  await refreshConversations(selectedProject.id);
                   if (conversationId) {
-                    const detail = await api.getConversation(selectedProject.id, conversationId);
+                    const [detail] = await Promise.all([
+                      api.getConversation(selectedProject.id, conversationId),
+                      refreshConversations(selectedProject.id),
+                    ]);
                     setSelectedConversation(detail);
+                  } else {
+                    await refreshConversations(selectedProject.id);
                   }
                 },
                 onWarnings: (warnings) => warnings.length && setError(warnings.join(" | ")),

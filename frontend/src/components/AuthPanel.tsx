@@ -13,6 +13,7 @@ export function AuthPanel({ authState, health, onRefresh }: Props) {
         <div>
           <p className="eyebrow">Copilot</p>
           <h2>CLI 啟用流程</h2>
+          <p className="panel-subtitle">確認 CLI、登入與 entitlement 是否就緒，避免聊天流程中斷。</p>
         </div>
         <button className="button ghost" onClick={onRefresh}>
           重新整理
